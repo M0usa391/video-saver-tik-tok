@@ -5,11 +5,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Download, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export const DownloadForm = () => {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const resetState = () => {
+    setLoading(false);
+    setProgress(0);
+  };
 
   const handleDownload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,31 +34,43 @@ export const DownloadForm = () => {
     setLoading(true);
     setProgress(0);
 
+    // Create a controller to be able to abort the fetch if needed
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     try {
       // Simulate progress for better user experience
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          const newProgress = prev + Math.random() * 10;
-          return newProgress > 90 ? 90 : newProgress;
+          const newProgress = prev + Math.random() * 5;
+          return newProgress > 85 ? 85 : newProgress;
         });
-      }, 300);
+      }, 500);
 
+      console.log("Sending request to backend:", url);
+      
       // Make the API call to your render.com backend
       const response = await fetch("https://tiktok-da.onrender.com/download", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
         body: JSON.stringify({ url }),
+        signal: controller.signal,
       });
 
       clearInterval(progressInterval);
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error("Failed to download video");
+        const errorText = await response.text();
+        console.error("Server error:", errorText);
+        throw new Error(`Server error: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
+      console.log("Response data:", data);
       setProgress(100);
 
       // Create a download link for the video
@@ -65,14 +84,30 @@ export const DownloadForm = () => {
         
         toast.success("Video downloaded successfully!");
       } else {
-        throw new Error("No download URL received");
+        throw new Error("No download URL received from server");
       }
     } catch (error) {
       console.error("Download error:", error);
-      toast.error("Failed to download video. Please try again.");
+      
+      if ((error as Error).name === 'AbortError') {
+        toast.error("Download request timed out. The server might be busy, please try again later.");
+      } else if (retryCount < 2) {
+        // Retry logic
+        setRetryCount(prev => prev + 1);
+        toast.warning("Connection issue detected. Retrying...");
+        
+        // Small delay before retry
+        setTimeout(() => {
+          handleDownload(e);
+        }, 2000);
+        return;
+      } else {
+        toast.error("Failed to download video. The server might be down or experiencing high traffic.");
+      }
     } finally {
-      setLoading(false);
-      setProgress(0);
+      clearTimeout(timeoutId);
+      resetState();
+      setRetryCount(0);
     }
   };
 
@@ -128,17 +163,12 @@ export const DownloadForm = () => {
 
       {loading && (
         <motion.div 
-          className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden"
+          className="mt-4 overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <motion.div 
-            className="bg-blue-600 h-2.5 rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
-          />
+          <Progress value={progress} className="h-2" />
         </motion.div>
       )}
 
