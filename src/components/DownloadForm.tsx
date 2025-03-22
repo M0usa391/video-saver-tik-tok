@@ -1,11 +1,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Download, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 export const DownloadForm = () => {
   const [url, setUrl] = useState("");
@@ -13,6 +13,7 @@ export const DownloadForm = () => {
   const [progress, setProgress] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const resetState = () => {
     setLoading(false);
@@ -24,12 +25,20 @@ export const DownloadForm = () => {
     e.preventDefault();
     
     if (!url.trim()) {
-      toast.error("Please enter a TikTok URL");
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "الرجاء إدخال رابط فيديو TikTok"
+      });
       return;
     }
 
     if (!url.includes("tiktok.com")) {
-      toast.error("Please enter a valid TikTok URL");
+      toast({
+        variant: "destructive",
+        title: "رابط غير صالح",
+        description: "الرجاء إدخال رابط TikTok صالح"
+      });
       return;
     }
 
@@ -39,7 +48,7 @@ export const DownloadForm = () => {
 
     // Create a controller to be able to abort the fetch if needed
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // Increased to 60 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
     try {
       // Simulate progress for better user experience
@@ -52,8 +61,8 @@ export const DownloadForm = () => {
 
       const apiUrl = "https://tiktok-da.onrender.com/download";
       
-      setDebugInfo(`Attempting to connect to: ${apiUrl}`);
-      console.log("Sending request to backend:", url, "API URL:", apiUrl);
+      setDebugInfo(`محاولة الاتصال بـ: ${apiUrl}`);
+      console.log("إرسال طلب إلى الخادم:", url, "عنوان API:", apiUrl);
       
       // Make the API call to your render.com backend
       const response = await fetch(apiUrl, {
@@ -71,47 +80,79 @@ export const DownloadForm = () => {
       clearTimeout(timeoutId);
 
       // Log the raw response for debugging
-      setDebugInfo(`Response status: ${response.status} ${response.statusText}`);
+      setDebugInfo(`حالة الاستجابة: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Server error:", errorText);
-        setDebugInfo(prev => `${prev}\nServer error: ${response.status} ${response.statusText}\n${errorText}`);
-        throw new Error(`Server error: ${response.status} ${errorText}`);
+        console.error("خطأ في الخادم:", errorText);
+        setDebugInfo(prev => `${prev}\nخطأ في الخادم: ${response.status} ${response.statusText}\n${errorText}`);
+        throw new Error(`خطأ في الخادم: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
-      console.log("Response data:", data);
+      console.log("بيانات الاستجابة:", data);
       setProgress(100);
-      setDebugInfo(`Success: Video info received`);
+      setDebugInfo(`نجاح: تم استلام معلومات الفيديو\nرابط التنزيل: ${data.downloadUrl}`);
 
       // Create a download link for the video
       if (data.downloadUrl) {
-        const a = document.createElement("a");
-        a.href = data.downloadUrl;
-        a.download = data.filename || "tiktok-video.mp4";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        toast({
+          variant: "info",
+          title: "جاري التنزيل",
+          description: "بدأ تنزيل الفيديو، يرجى الانتظار..."
+        });
+
+        // Open the download URL in a new tab
+        window.open(data.downloadUrl, '_blank');
         
-        toast.success("Video downloaded successfully!");
+        // Also try the direct download approach as fallback
+        try {
+          const a = document.createElement("a");
+          a.href = data.downloadUrl;
+          a.download = data.filename || "tiktok-video.mp4";
+          a.target = "_blank"; // Add target blank for better compatibility
+          document.body.appendChild(a);
+          a.click();
+          
+          // Small delay before removing the element
+          setTimeout(() => {
+            document.body.removeChild(a);
+          }, 1000);
+        } catch (downloadError) {
+          console.error("خطأ في تنزيل الملف مباشرة:", downloadError);
+          setDebugInfo(prev => `${prev}\nفشل التنزيل المباشر. تم محاولة فتح الرابط في علامة تبويب جديدة.`);
+        }
+        
+        toast({
+          variant: "success",
+          title: "تم التنزيل بنجاح",
+          description: `تم تنزيل الفيديو "${data.title || data.filename}" بنجاح!`
+        });
       } else {
-        setDebugInfo(`Error: No download URL in response: ${JSON.stringify(data)}`);
-        throw new Error("No download URL received from server");
+        setDebugInfo(`خطأ: لا يوجد رابط تنزيل في الاستجابة: ${JSON.stringify(data)}`);
+        throw new Error("لم يتم استلام رابط التنزيل من الخادم");
       }
     } catch (error) {
-      console.error("Download error:", error);
+      console.error("خطأ في التنزيل:", error);
       
       // More detailed error reporting
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setDebugInfo(prev => `${prev}\nError: ${errorMessage}`);
+      setDebugInfo(prev => `${prev}\nخطأ: ${errorMessage}`);
       
       if ((error as Error).name === 'AbortError') {
-        toast.error("Download request timed out. The server might be busy, please try again later.");
-      } else if (retryCount < 1) { // Reduced retry count to 1
+        toast({
+          variant: "destructive",
+          title: "انتهت مهلة الطلب",
+          description: "انتهت مهلة طلب التنزيل. قد يكون الخادم مشغولاً، يرجى المحاولة مرة أخرى لاحقًا."
+        });
+      } else if (retryCount < 1) { // Only retry once
         // Retry logic
         setRetryCount(prev => prev + 1);
-        toast.warning(`Connection issue detected. Retrying... (${retryCount + 1}/2)`);
+        toast({
+          variant: "warning",
+          title: "مشكلة في الاتصال",
+          description: `تم اكتشاف مشكلة في الاتصال. إعادة المحاولة... (${retryCount + 1}/2)`
+        });
         
         // Small delay before retry
         setTimeout(() => {
@@ -119,13 +160,19 @@ export const DownloadForm = () => {
         }, 3000);
         return;
       } else {
-        toast.error("Failed to download video. The server might be down or experiencing high traffic. Please try again later.");
+        toast({
+          variant: "destructive",
+          title: "فشل التنزيل",
+          description: "فشل تنزيل الفيديو. قد يكون الخادم متوقفًا أو يواجه حركة مرور عالية. يرجى المحاولة مرة أخرى لاحقًا."
+        });
       }
     } finally {
       clearTimeout(timeoutId);
       if (retryCount >= 1) {
         resetState();
         setRetryCount(0);
+      } else {
+        setLoading(false);
       }
     }
   };
@@ -142,13 +189,14 @@ export const DownloadForm = () => {
           <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste TikTok video URL here..."
-            className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 h-14 pl-4 pr-12 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            placeholder="الصق رابط فيديو TikTok هنا..."
+            className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 h-14 pl-4 pr-12 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-right"
+            dir="rtl"
           />
           {url && (
             <motion.button
               type="button"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               onClick={() => setUrl("")}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -169,12 +217,12 @@ export const DownloadForm = () => {
           {loading ? (
             <div className="flex items-center space-x-2">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Downloading... {progress.toFixed(0)}%</span>
+              <span>جاري التنزيل... {progress.toFixed(0)}%</span>
             </div>
           ) : (
             <div className="flex items-center space-x-2">
               <Download className="h-5 w-5" />
-              <span>Download Video</span>
+              <span>تنزيل الفيديو</span>
             </div>
           )}
         </Button>
@@ -198,12 +246,12 @@ export const DownloadForm = () => {
           animate={{ opacity: 1, height: 'auto' }}
           transition={{ duration: 0.3 }}
         >
-          <pre className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{debugInfo}</pre>
+          <pre className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap" dir="ltr">{debugInfo}</pre>
         </motion.div>
       )}
 
       <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
-        By using our service, you agree to our Terms of Service and Privacy Policy
+        باستخدام خدمتنا ، أنت توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا
       </p>
     </motion.div>
   );
