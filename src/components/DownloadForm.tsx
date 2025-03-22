@@ -12,10 +12,12 @@ export const DownloadForm = () => {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const resetState = () => {
     setLoading(false);
     setProgress(0);
+    setDebugInfo(null);
   };
 
   const handleDownload = async (e: React.FormEvent) => {
@@ -33,28 +35,33 @@ export const DownloadForm = () => {
 
     setLoading(true);
     setProgress(0);
+    setDebugInfo(null);
 
     // Create a controller to be able to abort the fetch if needed
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // Increased to 60 second timeout
 
     try {
       // Simulate progress for better user experience
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          const newProgress = prev + Math.random() * 5;
-          return newProgress > 85 ? 85 : newProgress;
+          const newProgress = prev + Math.random() * 3;
+          return newProgress > 75 ? 75 : newProgress;
         });
       }, 500);
 
-      console.log("Sending request to backend:", url);
+      const apiUrl = "https://tiktok-da.onrender.com/download";
+      
+      setDebugInfo(`Attempting to connect to: ${apiUrl}`);
+      console.log("Sending request to backend:", url, "API URL:", apiUrl);
       
       // Make the API call to your render.com backend
-      const response = await fetch("https://tiktok-da.onrender.com/download", {
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
+          "Cache-Control": "no-cache",
         },
         body: JSON.stringify({ url }),
         signal: controller.signal,
@@ -63,15 +70,20 @@ export const DownloadForm = () => {
       clearInterval(progressInterval);
       clearTimeout(timeoutId);
 
+      // Log the raw response for debugging
+      setDebugInfo(`Response status: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Server error:", errorText);
+        setDebugInfo(prev => `${prev}\nServer error: ${response.status} ${response.statusText}\n${errorText}`);
         throw new Error(`Server error: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
       console.log("Response data:", data);
       setProgress(100);
+      setDebugInfo(`Success: Video info received`);
 
       // Create a download link for the video
       if (data.downloadUrl) {
@@ -84,30 +96,37 @@ export const DownloadForm = () => {
         
         toast.success("Video downloaded successfully!");
       } else {
+        setDebugInfo(`Error: No download URL in response: ${JSON.stringify(data)}`);
         throw new Error("No download URL received from server");
       }
     } catch (error) {
       console.error("Download error:", error);
       
+      // More detailed error reporting
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setDebugInfo(prev => `${prev}\nError: ${errorMessage}`);
+      
       if ((error as Error).name === 'AbortError') {
         toast.error("Download request timed out. The server might be busy, please try again later.");
-      } else if (retryCount < 2) {
+      } else if (retryCount < 1) { // Reduced retry count to 1
         // Retry logic
         setRetryCount(prev => prev + 1);
-        toast.warning("Connection issue detected. Retrying...");
+        toast.warning(`Connection issue detected. Retrying... (${retryCount + 1}/2)`);
         
         // Small delay before retry
         setTimeout(() => {
           handleDownload(e);
-        }, 2000);
+        }, 3000);
         return;
       } else {
-        toast.error("Failed to download video. The server might be down or experiencing high traffic.");
+        toast.error("Failed to download video. The server might be down or experiencing high traffic. Please try again later.");
       }
     } finally {
       clearTimeout(timeoutId);
-      resetState();
-      setRetryCount(0);
+      if (retryCount >= 1) {
+        resetState();
+        setRetryCount(0);
+      }
     }
   };
 
@@ -169,6 +188,17 @@ export const DownloadForm = () => {
           transition={{ duration: 0.3 }}
         >
           <Progress value={progress} className="h-2" />
+        </motion.div>
+      )}
+
+      {debugInfo && (
+        <motion.div
+          className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md text-xs font-mono overflow-x-auto max-h-32 overflow-y-auto"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.3 }}
+        >
+          <pre className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{debugInfo}</pre>
         </motion.div>
       )}
 
