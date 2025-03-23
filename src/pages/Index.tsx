@@ -27,8 +27,16 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-950 overflow-hidden" dir="rtl">
       <div className="backdrop" />
+      
+      {/* Color Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-pink-100/40 dark:bg-pink-900/10 blur-3xl" />
+        <div className="absolute bottom-40 left-10 w-72 h-72 rounded-full bg-blue-100/40 dark:bg-blue-900/10 blur-3xl" />
+        <div className="absolute top-1/3 left-1/4 w-48 h-48 rounded-full bg-purple-100/30 dark:bg-purple-900/10 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/3 w-56 h-56 rounded-full bg-green-100/30 dark:bg-green-900/10 blur-3xl" />
+      </div>
       
       <Header />
       
@@ -47,7 +55,7 @@ const Index = () => {
               transition={{ duration: 0.7 }}
             >
               <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium mb-6">
-                TikTok Video Downloader
+                أداة تنزيل فيديوهات تيك توك
               </div>
             </motion.div>
             
@@ -57,8 +65,8 @@ const Index = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.7 }}
             >
-              Download TikTok Videos <br />
-              <span className="text-blue-600 dark:text-blue-400">Without Watermark</span>
+              تنزيل فيديوهات تيك توك <br />
+              <span className="text-blue-600 dark:text-blue-400">بدون علامة مائية</span>
             </motion.h1>
             
             <motion.p
@@ -67,19 +75,19 @@ const Index = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.7 }}
             >
-              Save high-quality TikTok videos without watermark to your device in just a few seconds. No registration required.
+              احفظ فيديوهات تيك توك عالية الجودة بدون علامة مائية على جهازك في ثوانٍ معدودة. لا يلزم التسجيل.
             </motion.p>
             
             <DownloadForm />
             
             <motion.div 
-              className="mt-16 flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8"
+              className="mt-16 flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8 md:space-x-reverse"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.7 }}
             >
               <div className="flex items-center">
-                <div className="flex -space-x-2">
+                <div className="flex -space-x-2 space-x-reverse">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className={`w-8 h-8 rounded-full bg-gradient-to-br ${
                       i === 1 ? 'from-blue-400 to-blue-500' : 
@@ -88,8 +96,8 @@ const Index = () => {
                     } border-2 border-white dark:border-gray-900`} />
                   ))}
                 </div>
-                <p className="ml-4 text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-semibold">1M+</span> happy users
+                <p className="mr-4 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold">+1 مليون</span> مستخدم سعيد
                 </p>
               </div>
               
@@ -109,8 +117,8 @@ const Index = () => {
                 <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                <p className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-semibold">4.9/5</span> from 10K+ reviews
+                <p className="mr-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold">4.9/5</span> من أكثر من 10 آلاف تقييم
                 </p>
               </div>
             </motion.div>
