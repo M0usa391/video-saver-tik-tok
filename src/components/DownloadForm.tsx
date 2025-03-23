@@ -3,9 +3,19 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, Download, Loader2 } from "lucide-react";
+import { Check, Download, Edit, Loader2, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { Toggle } from "@/components/ui/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+// Interface for download history items
+interface HistoryItem {
+  url: string;
+  downloadUrl: string;
+  name: string;
+  date: string;
+}
 
 export const DownloadForm = () => {
   const [url, setUrl] = useState("");
@@ -14,8 +24,24 @@ export const DownloadForm = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [downloadedVideo, setDownloadedVideo] = useState<string | null>(null);
   const [downloadStarted, setDownloadStarted] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [editingItem, setEditingItem] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
   const { toast } = useToast();
+
+  // Load history from localStorage on component mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem("downloadHistory");
+    if (savedHistory) {
+      setHistory(JSON.parse(savedHistory));
+    }
+  }, []);
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("downloadHistory", JSON.stringify(history));
+  }, [history]);
 
   const resetState = () => {
     setLoading(false);
@@ -96,10 +122,23 @@ export const DownloadForm = () => {
         setDownloadedVideo(data.downloadUrl);
         setDownloadStarted(true);
         
+        // Add to history
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('ar-EG');
+        const timeStr = now.toLocaleTimeString('ar-EG');
+        const newHistoryItem: HistoryItem = {
+          url: url,
+          downloadUrl: data.downloadUrl,
+          name: `فيديو TikTok - ${dateStr} ${timeStr}`,
+          date: `${dateStr} ${timeStr}`
+        };
+        
+        setHistory(prev => [newHistoryItem, ...prev.slice(0, 19)]); // Keep last 20 items max
+        
         toast({
           variant: "success",
           title: "تم العثور على الفيديو بنجاح",
-          description: "يمكنك الآن تنزيل الفيديو من خلال الزر أدناه"
+          description: "يمكنك الآن تنزيل الفيديو من خلال الرابط أدناه"
         });
       } else {
         throw new Error("لم يتم استلام رابط التنزيل من الخادم");
@@ -148,33 +187,32 @@ export const DownloadForm = () => {
     }
   };
 
-  // Function to handle direct download
-  const initiateDownload = () => {
-    if (downloadedVideo) {
-      // Create an invisible anchor element
-      const a = document.createElement('a');
-      a.href = downloadedVideo;
-      a.download = 'tiktok-video.mp4'; // Default filename
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+  // Function to handle renaming a history item
+  const handleRename = (index: number) => {
+    if (editName.trim()) {
+      const updatedHistory = [...history];
+      updatedHistory[index].name = editName;
+      setHistory(updatedHistory);
+      setEditingItem(null);
+      setEditName("");
       
       toast({
         variant: "success",
-        title: "جاري التنزيل",
-        description: "بدأ تنزيل الفيديو على جهازك"
+        title: "تم تغيير الاسم",
+        description: "تم تحديث اسم الفيديو بنجاح"
       });
     }
   };
 
-  // Clean up object URLs when component unmounts
-  useEffect(() => {
-    return () => {
-      if (downloadedVideo && downloadedVideo.startsWith('blob:')) {
-        URL.revokeObjectURL(downloadedVideo);
-      }
-    };
-  }, [downloadedVideo]);
+  // Function to remove item from history
+  const removeHistoryItem = (index: number) => {
+    setHistory(prev => prev.filter((_, i) => i !== index));
+    toast({
+      variant: "default",
+      title: "تم الحذف",
+      description: "تم حذف الفيديو من السجل"
+    });
+  };
 
   return (
     <motion.div 
@@ -217,7 +255,7 @@ export const DownloadForm = () => {
           {loading ? (
             <div className="flex items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin ml-2" />
-              <span>جاري البحث عن الفيديو... {progress.toFixed(0)}%</span>
+              <span>جاري البحث عن الفيديو...</span>
             </div>
           ) : (
             <div className="flex items-center justify-center">
@@ -258,23 +296,140 @@ export const DownloadForm = () => {
               <p className="font-medium">تم العثور على الفيديو بنجاح!</p>
             </div>
             
-            <Button
-              onClick={initiateDownload}
-              className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-xl shadow-md transition-all"
-            >
-              <Download className="h-5 w-5 ml-2" />
-              <span>تنزيل الفيديو</span>
-            </Button>
+            <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4 text-sm text-gray-700 dark:text-gray-300 text-center break-all">
+              <p className="mb-2 font-medium">اضغط على الرابط أدناه لتنزيل الفيديو:</p>
+              <a 
+                href={downloadedVideo} 
+                download 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                رابط تنزيل الفيديو - اضغط هنا للتنزيل
+              </a>
+            </div>
+            
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+              يمكنك النقر بزر الماوس الأيمن على الرابط واختيار "حفظ الرابط باسم" إذا لم يبدأ التنزيل تلقائيًا
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="mt-6">
+        <ToggleGroup type="single" value={showHistory ? "history" : "hidden"} onValueChange={(value) => {
+          if (value) setShowHistory(value === "history");
+        }}>
+          <ToggleGroupItem value="history" className="w-full">
+            {showHistory ? "إخفاء سجل التنزيلات" : "عرض سجل التنزيلات"}
+          </ToggleGroupItem>
+        </ToggleGroup>
+        
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4 overflow-hidden"
+            >
+              {history.length === 0 ? (
+                <p className="text-center text-gray-500 dark:text-gray-400 py-6">
+                  لا توجد تنزيلات سابقة
+                </p>
+              ) : (
+                <ul className="space-y-3 max-h-[400px] overflow-y-auto scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent scrollbar-thin">
+                  {history.map((item, index) => (
+                    <li key={index} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between">
+                        {editingItem === index ? (
+                          <div className="flex-1 flex items-center">
+                            <Input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="text-sm"
+                              placeholder="أدخل اسمًا جديدًا"
+                              autoFocus
+                            />
+                            <div className="flex shrink-0 mr-2">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => handleRename(index)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => setEditingItem(null)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium">{item.name}</h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.date}</p>
+                            </div>
+                            <div className="flex">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => {
+                                  setEditingItem(index);
+                                  setEditName(item.name);
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => removeHistoryItem(index)}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
+                      <div className="mt-2">
+                        <a 
+                          href={item.downloadUrl} 
+                          download 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          تنزيل الفيديو مرة أخرى
+                        </a>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <div className="flex justify-center mt-8">
         <motion.a 
           href="https://www.tiktok.com/@m0usa_0mar" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full shadow-md hover:shadow-xl transition-all"
+          className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-xl transition-all"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.98 }}
         >
