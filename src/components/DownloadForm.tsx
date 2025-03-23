@@ -29,12 +29,18 @@ export const DownloadForm = () => {
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const { toast } = useToast();
+  const downloadLinkRef = useRef<HTMLAnchorElement>(null);
 
   // Load history from localStorage on component mount
   useEffect(() => {
     const savedHistory = localStorage.getItem("downloadHistory");
     if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (error) {
+        console.error("خطأ في تحميل سجل التنزيلات:", error);
+        localStorage.removeItem("downloadHistory");
+      }
     }
   }, []);
 
@@ -140,6 +146,13 @@ export const DownloadForm = () => {
           title: "تم العثور على الفيديو بنجاح",
           description: "يمكنك الآن تنزيل الفيديو من خلال الرابط أدناه"
         });
+        
+        // Automatically trigger download after a short delay
+        setTimeout(() => {
+          if (downloadLinkRef.current) {
+            downloadLinkRef.current.click();
+          }
+        }, 1000);
       } else {
         throw new Error("لم يتم استلام رابط التنزيل من الخادم");
       }
@@ -185,6 +198,16 @@ export const DownloadForm = () => {
         setLoading(false);
       }
     }
+  };
+
+  // Function to download the video
+  const downloadVideo = (url: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'tiktok-video.mp4';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   // Function to handle renaming a history item
@@ -296,30 +319,44 @@ export const DownloadForm = () => {
               <p className="font-medium">تم العثور على الفيديو بنجاح!</p>
             </div>
             
-            <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4 text-sm text-gray-700 dark:text-gray-300 text-center break-all">
-              <p className="mb-2 font-medium">اضغط على الرابط أدناه لتنزيل الفيديو:</p>
-              <a 
-                href={downloadedVideo} 
-                download 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+            <div className="flex justify-center mb-4">
+              <Button 
+                className="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center justify-center"
+                onClick={() => {
+                  if (downloadedVideo) {
+                    downloadVideo(downloadedVideo, 'tiktok-video.mp4');
+                  }
+                }}
               >
-                رابط تنزيل الفيديو - اضغط هنا للتنزيل
+                <Download className="h-5 w-5 ml-2" />
+                <span>تنزيل الفيديو الآن</span>
+              </Button>
+              <a 
+                ref={downloadLinkRef}
+                href={downloadedVideo} 
+                download="tiktok-video.mp4"
+                className="hidden"
+              >
+                تنزيل
               </a>
             </div>
             
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-              يمكنك النقر بزر الماوس الأيمن على الرابط واختيار "حفظ الرابط باسم" إذا لم يبدأ التنزيل تلقائيًا
+              يمكنك الضغط على الزر أعلاه لتنزيل الفيديو مباشرة على جهازك
             </p>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="mt-6">
-        <ToggleGroup type="single" value={showHistory ? "history" : "hidden"} onValueChange={(value) => {
-          if (value) setShowHistory(value === "history");
-        }}>
+        <ToggleGroup 
+          type="single" 
+          value={showHistory ? "history" : "hidden"} 
+          onValueChange={(value) => {
+            if (value) setShowHistory(value === "history");
+          }}
+          className="relative z-10"
+        >
           <ToggleGroupItem value="history" className="w-full">
             {showHistory ? "إخفاء سجل التنزيلات" : "عرض سجل التنزيلات"}
           </ToggleGroupItem>
@@ -405,15 +442,17 @@ export const DownloadForm = () => {
                       </div>
                       
                       <div className="mt-2">
-                        <a 
-                          href={item.downloadUrl} 
-                          download 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        <Button 
+                          variant="link" 
+                          className="text-xs text-blue-600 dark:text-blue-400 p-0 h-auto hover:underline"
+                          onClick={() => {
+                            if (item.downloadUrl) {
+                              downloadVideo(item.downloadUrl, `${item.name}.mp4`);
+                            }
+                          }}
                         >
                           تنزيل الفيديو مرة أخرى
-                        </a>
+                        </Button>
                       </div>
                     </li>
                   ))}
