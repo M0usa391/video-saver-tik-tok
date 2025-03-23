@@ -1,9 +1,9 @@
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Loader2 } from "lucide-react";
+import { Check, Download, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,15 +12,15 @@ export const DownloadForm = () => {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [downloadedVideo, setDownloadedVideo] = useState<string | null>(null);
+  const [downloadStarted, setDownloadStarted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
   const resetState = () => {
     setLoading(false);
     setProgress(0);
-    setDebugInfo(null);
+    setDownloadStarted(false);
   };
 
   const handleDownload = async (e: React.FormEvent) => {
@@ -46,8 +46,8 @@ export const DownloadForm = () => {
 
     setLoading(true);
     setProgress(0);
-    setDebugInfo(null);
     setDownloadedVideo(null);
+    setDownloadStarted(false);
 
     // Create a controller to be able to abort the fetch if needed
     const controller = new AbortController();
@@ -64,7 +64,6 @@ export const DownloadForm = () => {
 
       const apiUrl = "https://tiktok-da.onrender.com/download";
       
-      setDebugInfo(`محاولة الاتصال بـ: ${apiUrl}`);
       console.log("إرسال طلب إلى الخادم:", url, "عنوان API:", apiUrl);
       
       // Make the API call to your render.com backend
@@ -81,51 +80,28 @@ export const DownloadForm = () => {
 
       clearInterval(progressInterval);
       clearTimeout(timeoutId);
-
-      // Log the raw response for debugging
-      setDebugInfo(`حالة الاستجابة: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
         const errorText = await response.text();
         console.error("خطأ في الخادم:", errorText);
-        setDebugInfo(prev => `${prev}\nخطأ في الخادم: ${response.status} ${response.statusText}\n${errorText}`);
         throw new Error(`خطأ في الخادم: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
       console.log("بيانات الاستجابة:", data);
       setProgress(100);
-      setDebugInfo(`نجاح: تم استلام معلومات الفيديو\nرابط التنزيل: ${data.downloadUrl}`);
 
       // Set the downloaded video URL
       if (data.downloadUrl) {
         setDownloadedVideo(data.downloadUrl);
+        setDownloadStarted(true);
         
-        // Attempt to fetch the video as a blob to display it inline
-        try {
-          const videoResponse = await fetch(data.downloadUrl);
-          const videoBlob = await videoResponse.blob();
-          const videoUrl = URL.createObjectURL(videoBlob);
-          setDownloadedVideo(videoUrl);
-          
-          toast({
-            variant: "success",
-            title: "تم التنزيل بنجاح",
-            description: `تم تنزيل الفيديو "${data.title || data.filename}" بنجاح!`
-          });
-        } catch (videoError) {
-          console.error("خطأ في تحميل الفيديو:", videoError);
-          // If we can't fetch the video directly, just use the link for direct download
-          window.location.href = data.downloadUrl;
-          
-          toast({
-            variant: "info",
-            title: "جاري التنزيل",
-            description: "بدأ تنزيل الفيديو الآن."
-          });
-        }
+        toast({
+          variant: "success",
+          title: "تم العثور على الفيديو بنجاح",
+          description: "يمكنك الآن تنزيل الفيديو من خلال الزر أدناه"
+        });
       } else {
-        setDebugInfo(`خطأ: لا يوجد رابط تنزيل في الاستجابة: ${JSON.stringify(data)}`);
         throw new Error("لم يتم استلام رابط التنزيل من الخادم");
       }
     } catch (error) {
@@ -133,7 +109,6 @@ export const DownloadForm = () => {
       
       // More detailed error reporting
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setDebugInfo(prev => `${prev}\nخطأ: ${errorMessage}`);
       
       if ((error as Error).name === 'AbortError') {
         toast({
@@ -173,6 +148,25 @@ export const DownloadForm = () => {
     }
   };
 
+  // Function to handle direct download
+  const initiateDownload = () => {
+    if (downloadedVideo) {
+      // Create an invisible anchor element
+      const a = document.createElement('a');
+      a.href = downloadedVideo;
+      a.download = 'tiktok-video.mp4'; // Default filename
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast({
+        variant: "success",
+        title: "جاري التنزيل",
+        description: "بدأ تنزيل الفيديو على جهازك"
+      });
+    }
+  };
+
   // Clean up object URLs when component unmounts
   useEffect(() => {
     return () => {
@@ -197,6 +191,7 @@ export const DownloadForm = () => {
             placeholder="الصق رابط فيديو TikTok هنا..."
             className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 h-14 pl-4 pr-12 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-right"
             dir="rtl"
+            disabled={loading}
           />
           {url && (
             <motion.button
@@ -220,14 +215,14 @@ export const DownloadForm = () => {
           disabled={loading}
         >
           {loading ? (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin ml-2" />
-              <span>جاري التنزيل... {progress.toFixed(0)}%</span>
+              <span>جاري البحث عن الفيديو... {progress.toFixed(0)}%</span>
             </div>
           ) : (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center">
               <Download className="h-5 w-5 ml-2" />
-              <span>تنزيل الفيديو</span>
+              <span>البحث عن الفيديو</span>
             </div>
           )}
         </Button>
@@ -241,64 +236,58 @@ export const DownloadForm = () => {
           transition={{ duration: 0.3 }}
         >
           <Progress value={progress} className="h-2" />
-        </motion.div>
-      )}
-
-      {downloadedVideo && (
-        <motion.div
-          className="mt-6 rounded-xl overflow-hidden shadow-lg"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <video 
-            ref={videoRef}
-            src={downloadedVideo}
-            controls
-            autoPlay
-            className="w-full h-auto rounded-xl"
-            controlsList="nodownload"
-          >
-            فشل تحميل الفيديو، يمكنك <a href={downloadedVideo} download className="text-blue-500 underline">التنزيل المباشر</a>
-          </video>
-          <div className="mt-3 flex justify-center">
-            <a 
-              href={downloadedVideo} 
-              download 
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-            >
-              <Download className="h-4 w-4 mr-1" />
-              حفظ الفيديو
-            </a>
+          
+          <div className="mt-4 flex justify-center items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-2"></div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">جاري الاتصال بالخادم...</p>
           </div>
         </motion.div>
       )}
 
-      {debugInfo && (
-        <motion.div
-          className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md text-xs font-mono overflow-x-auto max-h-32 overflow-y-auto"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          transition={{ duration: 0.3 }}
-        >
-          <pre className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap" dir="ltr">{debugInfo}</pre>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {downloadStarted && downloadedVideo && (
+          <motion.div
+            className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex items-center justify-center mb-4 text-green-500">
+              <Check className="h-6 w-6 mr-2" />
+              <p className="font-medium">تم العثور على الفيديو بنجاح!</p>
+            </div>
+            
+            <Button
+              onClick={initiateDownload}
+              className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-xl shadow-md transition-all"
+            >
+              <Download className="h-5 w-5 ml-2" />
+              <span>تنزيل الفيديو</span>
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="flex justify-center mt-6 text-gray-600 dark:text-gray-400">
-        <a 
+      <div className="flex justify-center mt-8">
+        <motion.a 
           href="https://www.tiktok.com/@m0usa_0mar" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="flex items-center text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full shadow-md hover:shadow-xl transition-all"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
         >
-          <span className="mx-1">@m0usa_0mar</span>
-          <span>تابعني على تيك توك</span>
-        </a>
+          <span className="text-white font-medium">تابعني على تيك توك</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" className="mr-2 text-white">
+            <path d="M9 0h1.98c.144.715.54 1.617 1.235 2.512C12.895 3.389 13.797 4 15 4v2c-1.753 0-3.07-.814-4-1.829V11a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3V0Z"/>
+          </svg>
+          <span className="text-white font-bold mr-1">@m0usa_0mar</span>
+        </motion.a>
       </div>
 
-      <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4" dir="rtl">
-        باستخدام خدمتنا ، أنت توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا
+      <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6" dir="rtl">
+        باستخدام خدمتنا، أنت توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا
       </p>
     </motion.div>
   );

@@ -3,9 +3,6 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { DownloadForm } from "@/components/DownloadForm";
-import { Features } from "@/components/Features";
-import { HowItWorks } from "@/components/HowItWorks";
-import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
 
 const Index = () => {
@@ -30,12 +27,14 @@ const Index = () => {
     <div className="min-h-screen bg-white dark:bg-gray-950 overflow-hidden" dir="rtl">
       <div className="backdrop" />
       
-      {/* Color Blobs */}
+      {/* Color Blobs - Made more vibrant and more of them */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-pink-100/40 dark:bg-pink-900/10 blur-3xl" />
-        <div className="absolute bottom-40 left-10 w-72 h-72 rounded-full bg-blue-100/40 dark:bg-blue-900/10 blur-3xl" />
-        <div className="absolute top-1/3 left-1/4 w-48 h-48 rounded-full bg-purple-100/30 dark:bg-purple-900/10 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/3 w-56 h-56 rounded-full bg-green-100/30 dark:bg-green-900/10 blur-3xl" />
+        <div className="absolute top-20 right-10 w-72 h-72 rounded-full bg-pink-100/60 dark:bg-pink-900/20 blur-3xl" />
+        <div className="absolute bottom-20 left-10 w-80 h-80 rounded-full bg-blue-100/60 dark:bg-blue-900/20 blur-3xl" />
+        <div className="absolute top-1/3 left-1/4 w-60 h-60 rounded-full bg-purple-100/50 dark:bg-purple-900/20 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/3 w-64 h-64 rounded-full bg-green-100/50 dark:bg-green-900/20 blur-3xl" />
+        <div className="absolute top-1/2 right-1/4 w-52 h-52 rounded-full bg-yellow-100/40 dark:bg-yellow-900/20 blur-3xl" />
+        <div className="absolute bottom-1/3 left-1/3 w-56 h-56 rounded-full bg-cyan-100/40 dark:bg-cyan-900/20 blur-3xl" />
       </div>
       
       <Header />
@@ -54,7 +53,7 @@ const Index = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
             >
-              <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium mb-6">
+              <div className="inline-block px-4 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium mb-6">
                 أداة تنزيل فيديوهات تيك توك
               </div>
             </motion.div>
@@ -122,25 +121,8 @@ const Index = () => {
                 </p>
               </div>
             </motion.div>
-            
-            <motion.div 
-              className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.7 }}
-            >
-              <a href="#how-it-works" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              </a>
-            </motion.div>
           </div>
         </section>
-        
-        <HowItWorks />
-        <Features />
-        <FAQ />
       </main>
       
       <Footer />

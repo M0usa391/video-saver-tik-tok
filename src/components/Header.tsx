@@ -2,10 +2,14 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { MoonIcon, SunIcon } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
+import { Switch } from "@/components/ui/switch";
 
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,31 +50,31 @@ export const Header = () => {
           <span className="font-medium text-lg tracking-tight">تيك سيف</span>
         </motion.div>
         
-        {/* Desktop menu */}
-        <motion.nav 
-          className="hidden md:flex items-center space-x-8 space-x-reverse"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
+        {/* Theme switcher */}
+        <div className="flex items-center gap-2">
+          <SunIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+          <Switch 
+            checked={theme === "dark"}
+            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+            className="data-[state=checked]:bg-blue-600"
+          />
+          <MoonIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+        </div>
+
+        {/* TikTok Link - Made more prominent */}
+        <motion.a 
+          href="https://www.tiktok.com/@m0usa_0mar" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="hidden md:flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-2 rounded-full hover:shadow-lg transition-all font-medium"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
         >
-          <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-            كيف يعمل
-          </a>
-          <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-            المميزات
-          </a>
-          <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-            الأسئلة الشائعة
-          </a>
-          <a 
-            href="https://www.tiktok.com/@m0usa_0mar" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-sm font-medium bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-2 rounded-full hover:shadow-md transition-all"
-          >
-            @m0usa_0mar
-          </a>
-        </motion.nav>
+          <span className="text-white">@m0usa_0mar</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="text-white">
+            <path d="M9 0h1.98c.144.715.54 1.617 1.235 2.512C12.895 3.389 13.797 4 15 4v2c-1.753 0-3.07-.814-4-1.829V11a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3V0Z"/>
+          </svg>
+        </motion.a>
 
         {/* Mobile menu button */}
         <div className="md:hidden">
@@ -101,34 +105,16 @@ export const Header = () => {
           >
             <div className="py-4 px-6 space-y-3">
               <a 
-                href="#how-it-works" 
-                className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                كيف يعمل
-              </a>
-              <a 
-                href="#features" 
-                className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                المميزات
-              </a>
-              <a 
-                href="#faq" 
-                className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                الأسئلة الشائعة
-              </a>
-              <a 
                 href="https://www.tiktok.com/@m0usa_0mar" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="block py-2 text-pink-500 hover:text-pink-600 dark:text-pink-400 dark:hover:text-pink-300 transition-colors"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-3 rounded-xl hover:shadow-md transition-all"
                 onClick={() => setIsMenuOpen(false)}
               >
-                @m0usa_0mar - متابعة على تيك توك
+                <span className="text-white">@m0usa_0mar</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="text-white">
+                  <path d="M9 0h1.98c.144.715.54 1.617 1.235 2.512C12.895 3.389 13.797 4 15 4v2c-1.753 0-3.07-.814-4-1.829V11a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3V0Z"/>
+                </svg>
               </a>
             </div>
           </motion.div>
