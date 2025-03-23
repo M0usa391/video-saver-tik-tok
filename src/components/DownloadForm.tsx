@@ -3,10 +3,9 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, Download, Edit, Loader2, Trash2 } from "lucide-react";
+import { Check, Download, Edit, Loader2, Trash2, ExternalLink } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 // Interface for download history items
@@ -29,7 +28,6 @@ export const DownloadForm = () => {
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const { toast } = useToast();
-  const downloadLinkRef = useRef<HTMLAnchorElement>(null);
 
   // Load history from localStorage on component mount
   useEffect(() => {
@@ -146,13 +144,6 @@ export const DownloadForm = () => {
           title: "تم العثور على الفيديو بنجاح",
           description: "يمكنك الآن تنزيل الفيديو من خلال الرابط أدناه"
         });
-        
-        // Automatically trigger download after a short delay
-        setTimeout(() => {
-          if (downloadLinkRef.current) {
-            downloadLinkRef.current.click();
-          }
-        }, 1000);
       } else {
         throw new Error("لم يتم استلام رابط التنزيل من الخادم");
       }
@@ -198,16 +189,6 @@ export const DownloadForm = () => {
         setLoading(false);
       }
     }
-  };
-
-  // Function to download the video
-  const downloadVideo = (url: string, filename: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || 'tiktok-video.mp4';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   };
 
   // Function to handle renaming a history item
@@ -319,31 +300,28 @@ export const DownloadForm = () => {
               <p className="font-medium">تم العثور على الفيديو بنجاح!</p>
             </div>
             
-            <div className="flex justify-center mb-4">
-              <Button 
-                className="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center justify-center"
-                onClick={() => {
-                  if (downloadedVideo) {
-                    downloadVideo(downloadedVideo, 'tiktok-video.mp4');
-                  }
-                }}
+            <div className="mb-4 text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                اضغط على الرابط أدناه لبدء التنزيل:
+              </p>
+              
+              <a 
+                href={downloadedVideo}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
               >
                 <Download className="h-5 w-5 ml-2" />
-                <span>تنزيل الفيديو الآن</span>
-              </Button>
-              <a 
-                ref={downloadLinkRef}
-                href={downloadedVideo} 
-                download="tiktok-video.mp4"
-                className="hidden"
-              >
-                تنزيل
+                <span>تنزيل الفيديو</span>
+                <ExternalLink className="h-4 w-4 mr-2" />
               </a>
             </div>
             
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-              يمكنك الضغط على الزر أعلاه لتنزيل الفيديو مباشرة على جهازك
-            </p>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                تم حفظ هذا الفيديو في سجل التنزيلات الخاص بك
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -442,17 +420,16 @@ export const DownloadForm = () => {
                       </div>
                       
                       <div className="mt-2">
-                        <Button 
-                          variant="link" 
-                          className="text-xs text-blue-600 dark:text-blue-400 p-0 h-auto hover:underline"
-                          onClick={() => {
-                            if (item.downloadUrl) {
-                              downloadVideo(item.downloadUrl, `${item.name}.mp4`);
-                            }
-                          }}
+                        <a 
+                          href={item.downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-xs text-blue-600 dark:text-blue-400 hover:underline"
                         >
+                          <Download className="h-3 w-3 ml-1" />
                           تنزيل الفيديو مرة أخرى
-                        </Button>
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                        </a>
                       </div>
                     </li>
                   ))}
@@ -468,8 +445,8 @@ export const DownloadForm = () => {
           href="https://www.tiktok.com/@m0usa_0mar" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-xl transition-all"
-          whileHover={{ scale: 1.05 }}
+          className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500/70 to-indigo-600/70 text-white rounded-xl shadow-sm hover:shadow-md transition-all dark:from-blue-600/70 dark:to-indigo-700/70"
+          whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.98 }}
         >
           <span className="text-white font-medium">تابعني على تيك توك</span>

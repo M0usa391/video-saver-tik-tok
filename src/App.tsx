@@ -13,11 +13,11 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Sonner position="top-center" closeButton />
+    <ThemeProvider defaultTheme="light">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner position="top-center" closeButton />
+        <QueryClientProvider client={queryClient}>
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -25,9 +25,9 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </QueryClientProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   );
 }
 
